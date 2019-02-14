@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+
+<head>
+  <meta charset="utf-8">
+  <!-- link to version 4 of d3 -->
+  <script src="https://d3js.org/d3.v4.min.js"></script>
+
+  <!-- instead of stylesheets -->
+  <link rel='stylesheet' href="https://use.typekit.net/ckg7yjc.css">
+  <link rel='stylesheet' href="ff-stylesheet-ap.css">
+
+</head>
+
+<body>
+  <div class='headline-style'>Tk Headline</div>
+  <div class='subhed-style'>Below is Tk that TK. Hover for details.</div>
+
+  <script>
+    // declate outer height and width as variables to easily modify
+    var outerWidth = 620,
+      outerHeight = 400;
+
+    var fundFireColors = [ '#990000','#FF9933', '#006666', '#99CC33', '#009999','#006699', '#CC0000'],
+      agendaColors = ['#98002E', '#582700', '#336699', '#996600', '#003366',  '#004F24', '#759900','#646569'],
+      ignitesColors = [ '#E61C3A', '#F06100', '#B2651F', '#004F24', '#70B5D3', '#EDC55B', '#807A89'],
+      boardIqColors = ['#0F004E','#EC881D','#783300','#339999'],
+      mandateWireColors = ['#7EA0C3', '#E09859', '#93B595', '#B297AF'];
+      
+
+//choose which publication this infographic is for
+    let publicationColors = fundFireColors;
+    let sourceText = 'Source TK';
+
+    // make variable for margins to easily move the axes/ differentiate between inner and outer
+    var margin = {
+      top: 30,
+      left: 130,
+      right: 160,
+      bottom: 30
+    };
+
+    //declare the inner width of just the chart (just call it width) and define it in relation to the margins we made
+    var width = outerWidth - margin.left - margin.right,
+      height = outerHeight - margin.top - margin.bottom;
+
+
+    //create a linear scale for the x coordinates
+    var xScale = d3.scaleLinear()
+      .range([0, width]);
+
+    //create a linear scale for the y coordinates, and put the larger number (height variable) first so that the y axis will flip
+    var yScale = d3.scaleLinear()
+      .range([height-30, 0]);
+
+
+    //create an ordinal scale and fill it with colors. the colors can be assigned one by one to specified categories. storing schemes in a variable here.
+    var colorScale = d3.scaleOrdinal()
+      .range(publicationColors);
+
+    // LOAD THE DATA --> the data is stored in a "dictionary" the + is to turn the row names into strings? or strings to js
+    d3.csv("data/heatmap.csv", function(err, csvData) {
+      csvData.forEach(function(row) {
+        //EDIT for x axis values
+        row.xAxisColumn = +row.xAxisColumn;
+        //EDIT for y axis values
+        row.yAxisColumn = +row.yAxisColumn;
+        //follow this pattern for any numeric data
+        row.year = +row.year;
+      });
+
+      //this can be used to filter data to give back only certain values. for example, this would give only year 2000
+      // csvData = csvData.filter(function(row) {
+      //   return row.year === 2000;
+      // });
+
+      //pass it the variable that will become the xAxis
+      var xAxisValues = csvData.map(function(row) {
+        return row.xAxisColumn;
+      });
+
+      // pass it the variable that will become Y axis
+      var yAxisValues = csvData.map(function(row) {
+        return row.yAxisColumn;
+      });
+
+      //set the domain of the linear x scale to be the extent (lowest and highest) datapoints
+      xScale.domain(d3.extent(xAxisValues));
+
+      //ADJUST MAX AND MIN OF Y AXIS
+      yScale.domain([0, d3.max(yAxisValues)]);
+
+//make the inside canvas smaller than the outside canvas to things dont get cut off
+      var svg = d3.select("body")
+        .append("svg")
+        .attr("width", outerWidth)
+        .attr("height", outerHeight)
+        .append("g")
+        .attr("transform", "translate(" + margin.left + " " + margin.top + ")");
+
+        //make a tooltip out of a div. the div will be invisible until we hover on the squares.
+      var div = d3.select("body")
+        .append("div")
+        .attr("class", "tooltip-style")
+        .style('opacity',0);
+
+
+      //dream up the concept of the squares
+      csvData.forEach(function(row) {
+        svg.append("rect")
+          .attr("width", 30)
+          .attr("height", 30)
+          .datum(row);
+      });
+      //make your square dreams come true
+      var squares = svg.selectAll("rect")
+        .attr("x", function(d) {
+          return xScale(d.xAxisColumn);
+        })
+        .attr("y", function(d) {
+          return yScale(d.yAxisColumn);
+        })
+        .attr("fill", function(d) {
+          return colorScale(d.seriesColor);
+        })
+        .attr('opacity', '0.5')
+        //still in reference to squares, tell squares what to look like when not hovering.
+        .on('mouseout', function(d){
+        div.transition()
+        .duration(1000)
+        .style('opacity',0)
+        d3.select(this)
+        .attr('stroke','none')
+        ;
+      })
+      //tell squares what to look like when the mouse is hovering and call the tooltip that lives in the css stylesheet
+        .on('mouseover', function(d){
+        d3.select(this).attr('stroke', 'black')
+        div.transition()
+        .duration(200)
+        .attr('stroke-width', '3')
+        .style("opacity", 1)
+        div.text(d.name+' organizations made up TK data point: ex ' + d.year)
+        // only tinker with this if the numbers absolutely must be styled differently
+        // div.html(function(d){
+        //   return (d.name +' organizations made up'+ d.year)
+        // })
+        .style("left", (d3.event.pageX -20) + "px")
+                .style("top",(d3.event.pageY ) + "px");
+        });
+
+//add the source as html
+        var sourceLabel = d3.select("body")
+          .append("div")
+          .attr("class", "sourceLabel")
+          .text(sourceText)
+    });
+
+  </script>
+</body>
